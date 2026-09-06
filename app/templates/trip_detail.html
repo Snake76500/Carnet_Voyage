@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}{{ trip.title }}{% endblock %}
+{% block meta_description %}{{ trip.description or trip.title }}{% endblock %}
+
+{% block nav_actions %}
+<a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary btn-sm">
+  <i class="fa-solid fa-plus"></i> Ajouter une étape
+</a>
+<a href="/trips/{{ trip.slug }}/edit" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-pen-to-square"></i> Modifier
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Trip Hero Header -->
+<header class="trip-hero">
+  {% if trip.cover_image_url %}
+  <img src="{{ trip.cover_image_url }}" class="trip-hero-bg" alt="{{ trip.title }}" />
+  {% endif %}
+  <div class="trip-hero-overlay"></div>
+  
+  <div class="trip-hero-content">
+    <div class="trip-header-main">
+      <h1>{{ trip.title }}</h1>
+      <div class="trip-header-meta">
+        {% if trip.start_date %}
+        <span>
+          <i class="fa-regular fa-calendar"></i>
+          {{ trip.start_date.strftime('%d/%m/%Y') }}
+          {% if trip.end_date and trip.end_date != trip.start_date %}
+           au {{ trip.end_date.strftime('%d/%m/%Y') }}
+          {% endif %}
+        </span>
+        {% endif %}
+        <span>•</span>
+        <span>
+          <i class="fa-solid fa-location-dot"></i>
+          {{ total_entries }} étape{{ 's' if total_entries > 1 else '' }}
+        </span>
+        <span>•</span>
+        {% if trip.is_public %}
+        <span class="badge badge-public"><i class="fa-solid fa-earth-americas"></i> Public</span>
+        {% else %}
+        <span class="badge badge-private"><i class="fa-solid fa-lock"></i> Privé</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <button type="button" class="btn btn-secondary btn-sm" id="share-trip-btn" onclick="copyTripShareLink()">
+        <i class="fa-solid fa-share-nodes"></i> Partager le voyage
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Dual Pane: Timeline & Interactive Map -->
+<div class="dual-pane-container">
+  
+  <!-- Left Column: Timeline stream -->
+  <div class="timeline-pane">
+    {% if trip.description %}
+    <div style="background: white; padding: 20px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 28px; font-size: 1.05rem; color: var(--text-muted); line-height: 1.6;">
+      {{ trip.description }}
+    </div>
+    {% endif %}
+
+    <div class="timeline-header">
+      <h2 style="font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-route" style="color: var(--primary);"></i>
+        Journal de Bord
+      </h2>
+      <a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-plus"></i> Nouvelle étape
+      </a>
+    </div>
+
+    {% if entries_data %}
+    <div class="timeline-stream">
+      {% for item in entries_data %}
+      {% set entry = item.entry %}
+      <article class="step-card" id="entry-{{ entry.id }}" data-entry-id="{{ entry.id }}">
+        <div class="step-marker-node">
+          {{ item.step_number }}
+        </div>
+
+        <div class="step-meta-row">
+          <div class="step-location-tag">
+            <i class="fa-solid fa-location-dot"></i>
+            {{ entry.location_name }}
+          </div>
+          <div class="step-date-tag">
+            <i class="fa-regular fa-calendar"></i>
+            {{ entry.date.strftime('%d %B %Y') if entry.date else '' }}
+          </div>
+        </div>
+
+        <h3 class="step-title">{{ entry.title }}</h3>
+
+        {% if item.body_html %}
+        <div class="step-body">
+          {{ item.body_html | safe }}
+        </div>
+        {% endif %}
+
+        <!-- Media Gallery -->
+        {% if item.media_list %}
+        <div class="step-gallery">
+          {% for media in item.media_list %}
+            {% if media.type == 'photo' %}
+            <div class="media-item">
+              <div class="media-photo-wrapper">
+                <img 
+                  src="{{ media.display_url }}" 
+                  data-full-src="{{ media.display_url }}"
+                  data-caption="{{ media.caption or entry.title }}"
+                  alt="{{ media.caption or entry.title }}" 
+                  loading="lazy"
+                  onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';"
+                />
+                {% if media.caption %}
+                <div class="media-caption-overlay">{{ media.caption }}</div>
+                {% endif %}
+              </div>
+              {% if media.is_drive %}
+              <div style="padding: 6px 10px; background: white; border-top: 1px solid var(--border-color); font-size: 0.76rem;">
+                <a href="{{ media.fallback_url }}" target="_blank" rel="noopener noreferrer" class="drive-fallback-link">
+                  <i class="fa-brands fa-google-drive"></i> Voir original sur Google Drive
+                </a>
+              </div>
+              {% endif %}
+            </div>
+            {% elif media.type == 'video' %}
+            <div class="media-item" style="grid-column: 1 / -1;">
+              <div class="media-video-container">
+                <iframe 
+                  src="{{ media.embed_url }}" 
+                  title="{{ media.caption or 'Vidéo YouTube' }}"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                  allowfullscreen>
+                </iframe>
+              </div>
+              {% if media.caption %}
+              <div style="padding: 8px 12px; background: white; border-top: 1px solid var(--border-color); font-size: 0.85rem; font-weight: 500;">
+                <i class="fa-brands fa-youtube" style="color: #FF0000;"></i> {{ media.caption }}
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
+          <a href="/trips/{{ trip.slug }}/entries/{{ entry.id }}/edit" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-pen"></i> Modifier
+          </a>
+          <form method="POST" action="/trips/{{ trip.slug }}/entries/{{ entry.id }}/delete" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étape ?');" style="display: inline;">
+            <button type="submit" class="btn btn-danger btn-sm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-compass-drafting"></i></div>
+      <h3>Aucune étape pour ce voyage</h3>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Ajoutez votre premier jour de voyage pour débuter le tracé sur la carte !</p>
+      <a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Ajouter une étape
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Column: Sticky Interactive Leaflet Map -->
+  <div class="map-pane">
+    <div id="map" data-trip-slug="{{ trip.slug }}"></div>
+  </div>
+</div>
+
+<!-- Photo Lightbox Modal -->
+<div id="lightbox-modal" class="lightbox-modal">
+  <div class="lightbox-content">
+    <button id="lightbox-close" class="lightbox-close">&times;</button>
+    <img id="lightbox-img" class="lightbox-img" src="" alt="Aperçu photo" />
+    <div id="lightbox-caption" class="lightbox-caption"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/map.js"></script>
+<script>
+function copyTripShareLink() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('share-trip-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Lien copié !';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+    }, 2500);
+  }).catch(err => {
+    alert("Lien du voyage : " + window.location.href);
+  });
+}
+</script>
+{% endblock %}

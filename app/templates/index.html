@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Carnets de Voyage{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-container">
+    <div>
+      <h1 class="hero-title">Explorez le Monde 🌍</h1>
+      <p class="hero-subtitle">Retracez vos voyages jour après jour avec cartes interactives, récits immersifs, photos et vidéos de vos plus belles aventures.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-box">
+        <span class="stat-number">{{ total_trips }}</span>
+        <span class="stat-label">Voyages</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number">{{ total_steps }}</span>
+        <span class="stat-label">Étapes tracées</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trips Grid Section -->
+<section class="trips-grid-section">
+  {% if trips %}
+  <div class="trips-grid">
+    {% for trip in trips %}
+    <article class="trip-card">
+      <div class="trip-card-cover">
+        <img src="{{ trip.cover_image_url or 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80' }}" alt="{{ trip.title }}" loading="lazy" />
+        <div class="trip-card-badges">
+          {% if trip.is_public %}
+          <span class="badge badge-public"><i class="fa-solid fa-earth-americas"></i> Public</span>
+          {% else %}
+          <span class="badge badge-private"><i class="fa-solid fa-lock"></i> Privé</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="trip-card-content">
+        {% if trip.start_date %}
+        <div class="trip-card-dates">
+          <i class="fa-regular fa-calendar"></i>
+          {{ trip.start_date.strftime('%b %Y') }}
+          {% if trip.end_date and trip.end_date != trip.start_date %}
+           - {{ trip.end_date.strftime('%b %Y') }}
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <h2 class="trip-card-title">
+          <a href="/trips/{{ trip.slug }}">{{ trip.title }}</a>
+        </h2>
+
+        {% if trip.description %}
+        <p class="trip-card-desc">{{ trip.description }}</p>
+        {% endif %}
+
+        <div class="trip-card-footer">
+          <div>
+            <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
+            <strong>{{ trip.entries|length }}</strong> étape{{ 's' if trip.entries|length > 1 else '' }}
+          </div>
+          <a href="/trips/{{ trip.slug }}" class="btn btn-secondary btn-sm">
+            Voir l'itinéraire <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+    <h3>Aucun voyage pour le moment</h3>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Commencez dès maintenant en créant votre premier carnet de voyage !</p>
+    <a href="/trips/new" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> Créer mon premier voyage
+    </a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier l\'étape' if is_edit else 'Ajouter une étape' }} • {{ trip.title }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+  <div class="form-card">
+    <h1 class="form-card-title">{{ 'Modifier l\'étape' if is_edit else 'Nouvelle étape du voyage' }}</h1>
+    <p class="form-card-subtitle">Voyage : <strong>{{ trip.title }}</strong></p>
+
+    <form method="POST" action="{{ '/trips/' + trip.slug + '/entries/' + (entry.id|string) + '/edit' if is_edit else '/trips/' + trip.slug + '/entries/new' }}">
+      
+      <!-- Title & Date -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="title" class="form-label">Titre de l'étape *</label>
+          <input type="text" id="title" name="title" class="form-control" placeholder="Ex: Randonnée vers les chutes de Skógafoss" value="{{ entry.title if entry else '' }}" required />
+        </div>
+        <div class="form-group">
+          <label for="entry_date" class="form-label">Date du jour *</label>
+          <input type="date" id="entry_date" name="entry_date" class="form-control" value="{{ default_date }}" required />
+        </div>
+      </div>
+
+      <!-- Location & GPS Coordinates -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="location_name" class="form-label">Nom du lieu *</label>
+          <input type="text" id="location_name" name="location_name" class="form-control" placeholder="Ex: Vík í Mýrdal, Islande" value="{{ entry.location_name if entry else '' }}" required />
+        </div>
+        <div class="form-group">
+          <label for="order_index" class="form-label">Numéro d'étape (ordre chrono) *</label>
+          <input type="number" id="order_index" name="order_index" class="form-control" value="{{ next_order }}" min="1" required />
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="latitude" class="form-label">Latitude GPS *</label>
+          <input type="number" step="any" id="latitude" name="latitude" class="form-control" placeholder="64.1466" value="{{ entry.latitude if entry else '' }}" required />
+        </div>
+        <div class="form-group">
+          <label for="longitude" class="form-label">Longitude GPS *</label>
+          <input type="number" step="any" id="longitude" name="longitude" class="form-control" placeholder="-21.9426" value="{{ entry.longitude if entry else '' }}" required />
+        </div>
+      </div>
+
+      <!-- Interactive Mini-Map for GPS Pointing -->
+      <div class="form-group">
+        <label class="form-label">Pointer le lieu sur la carte (cliquez ou déplacez le marqueur) :</label>
+        <div class="picker-map-container">
+          <div id="picker-map"></div>
+        </div>
+        <div class="form-hint">💡 Cliquez n'importe où sur la carte pour définir automatiquement la latitude et la longitude.</div>
+      </div>
+
+      <!-- Markdown Body -->
+      <div class="form-group">
+        <label for="body_markdown" class="form-label">Récit de la journée (Markdown supporté)</label>
+        <textarea id="body_markdown" name="body_markdown" class="form-control" rows="8" placeholder="Racontez votre journée... Vous pouvez utiliser du Markdown (# Titres, **Gras**, *Italique*, listes à puces - item)">{{ entry.body_markdown if entry else '' }}</textarea>
+      </div>
+
+      <!-- Dynamic Media Section -->
+      <div class="form-group" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Médias de l'étape (Photos & Vidéos)</h3>
+            <p style="font-size: 0.84rem; color: var(--text-muted);">
+              Ajoutez des photos (liens directs ou Google Drive partagés) et des vidéos YouTube.
+            </p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="add-media-btn">
+            <i class="fa-solid fa-plus"></i> Ajouter un média
+          </button>
+        </div>
+
+        <!-- Media Tips Banner -->
+        <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.83rem; color: #1E40AF; margin-bottom: 16px; line-height: 1.5;">
+          <strong>📌 Conseils d'intégration :</strong><br>
+          • <strong>Google Drive (Photo) :</strong> Assurez-vous que le partage est réglé sur <em>« Tous les utilisateurs disposant du lien »</em>.<br>
+          • <strong>YouTube (Vidéo) :</strong> Réglez impérativement la vidéo sur <strong>« Non répertorié » (Unlisted)</strong> et non « Privé » pour qu'elle puisse être intégrée en iframe.
+        </div>
+
+        <div id="media-container">
+          {% if entry and entry.media %}
+            {% for m in entry.media %}
+            <div class="media-input-row">
+              <div class="media-input-header">
+                <strong>Média #{{ loop.index }}</strong>
+                <button type="button" class="btn btn-danger btn-sm remove-media-btn">Supprimer</button>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Type</label>
+                  <select name="media_type[]" class="form-control">
+                    <option value="photo" {{ 'selected' if m.type == 'photo' else '' }}>Photo (Lien direct ou Google Drive)</option>
+                    <option value="video" {{ 'selected' if m.type == 'video' else '' }}>Vidéo (Lien YouTube)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Légende (optionnelle)</label>
+                  <input type="text" name="media_caption[]" class="form-control" placeholder="Ex: Coucher de soleil" value="{{ m.caption or '' }}" />
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">URL du média</label>
+                <input type="url" name="media_url[]" class="form-control" value="{{ m.url }}" required />
+              </div>
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <a href="/trips/{{ trip.slug }}" class="btn btn-secondary">Annuler</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> {{ 'Enregistrer l\'étape' if is_edit else 'Ajouter l\'étape au carnet' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/entry_picker.js"></script>
+{% endblock %}
