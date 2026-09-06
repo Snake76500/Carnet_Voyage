@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Optional
 from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -22,6 +23,13 @@ class Trip(Base):
         cascade="all, delete-orphan",
         order_by="DayEntry.order_index, DayEntry.date"
     )
+
+    @property
+    def cover_image_display_url(self) -> Optional[str]:
+        if not self.cover_image_url or not self.cover_image_url.strip():
+            return None
+        from app.services.media_helpers import process_photo_url
+        return process_photo_url(self.cover_image_url.strip())["display_url"]
 
     def __repr__(self):
         return f"<Trip id={self.id} title='{self.title}'>"

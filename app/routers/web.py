@@ -11,7 +11,7 @@ from app.core.auth import get_current_user, require_admin
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.trip import Trip, DayEntry, Media
-from app.services.media_helpers import process_media_item, render_markdown
+from app.services.media_helpers import process_media_item, render_markdown, process_photo_url
 from app.services.seed_data import create_demo_data
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(get_current_user)])
@@ -272,13 +272,17 @@ def create_trip_action(
     s_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     e_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
 
+    clean_cover_url = cover_image_url.strip() if cover_image_url and cover_image_url.strip() else None
+    if clean_cover_url:
+        clean_cover_url = process_photo_url(clean_cover_url)["display_url"]
+
     trip = Trip(
         title=title,
         slug=slug,
         description=description,
         start_date=s_date,
         end_date=e_date,
-        cover_image_url=cover_image_url,
+        cover_image_url=clean_cover_url,
         is_public=bool(is_public)
     )
     db.add(trip)
@@ -369,7 +373,12 @@ def edit_trip_action(
     trip.description = description
     trip.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
     trip.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-    trip.cover_image_url = cover_image_url
+    
+    clean_cover_url = cover_image_url.strip() if cover_image_url and cover_image_url.strip() else None
+    if clean_cover_url:
+        clean_cover_url = process_photo_url(clean_cover_url)["display_url"]
+    trip.cover_image_url = clean_cover_url
+
     trip.is_public = bool(is_public)
 
     db.commit()

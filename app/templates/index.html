@@ -30,7 +30,13 @@
     {% for trip in trips %}
     <article class="trip-card">
       <div class="trip-card-cover">
-        <img src="{{ trip.cover_image_url or 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80' }}" alt="{{ trip.title }}" loading="lazy" />
+        <img 
+          src="{{ trip.cover_image_display_url or trip.cover_image_url or 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80' }}" 
+          alt="{{ trip.title }}" 
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80';"
+        />
         <div class="trip-card-badges">
           {% if trip.is_public %}
           <span class="badge badge-public"><i class="fa-solid fa-earth-americas"></i> Public</span>

@@ -31,9 +31,40 @@
       </div>
 
       <div class="form-group">
-        <label for="cover_image_url" class="form-label">Image de couverture (URL)</label>
-        <input type="url" id="cover_image_url" name="cover_image_url" class="form-control" placeholder="https://images.unsplash.com/... ou lien photo" value="{{ trip.cover_image_url if trip and trip.cover_image_url else '' }}" />
-        <div class="form-hint">Une belle photo horizontale pour illustrer la bannière du voyage.</div>
+        <label for="cover_image_url" class="form-label">Image de couverture (URL ou Google Drive)</label>
+        <input 
+          type="text" 
+          id="cover_image_url" 
+          name="cover_image_url" 
+          class="form-control" 
+          placeholder="https://images.unsplash.com/... ou lien Google Drive" 
+          value="{{ trip.cover_image_url if trip and trip.cover_image_url else '' }}" 
+          autocomplete="off"
+        />
+        <div class="form-hint">
+          <i class="fa-solid fa-circle-info"></i> Formats acceptés : lien d'image direct (Unsplash, etc.) ou <strong>lien de partage Google Drive</strong> (le fichier doit être configuré en accès <em>« Tous les utilisateurs disposant du lien »</em>).
+        </div>
+
+        <!-- Live Preview Container -->
+        <div id="cover-preview-wrapper" style="margin-top: 12px; display: none;">
+          <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>Aperçu de la bannière :</span>
+            <span id="cover-preview-badge" style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem;"></span>
+          </div>
+          <div style="position: relative; width: 100%; height: 160px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-color); background: #0F172A;">
+            <img 
+              id="cover-preview-img" 
+              src="" 
+              alt="Aperçu couverture" 
+              referrerpolicy="no-referrer"
+              style="width: 100%; height: 100%; object-fit: cover;" 
+            />
+          </div>
+          <div id="cover-preview-warning" style="display: none; margin-top: 8px; padding: 10px 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-md); font-size: 0.82rem; color: #991B1B;">
+            <i class="fa-solid fa-triangle-exclamation"></i> <strong>L'image ne peut pas être chargée.</strong><br>
+            Si vous utilisez Google Drive, assurez-vous d'avoir cliqué sur <em>« Partager »</em> puis choisi <em>« Tous les utilisateurs qui ont le lien »</em> (accès public).
+          </div>
+        </div>
       </div>
 
       <div class="form-group" style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
@@ -66,4 +97,94 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const input = document.getElementById("cover_image_url");
+  const wrapper = document.getElementById("cover-preview-wrapper");
+  const img = document.getElementById("cover-preview-img");
+  const badge = document.getElementById("cover-preview-badge");
+  const warning = document.getElementById("cover-preview-warning");
+
+  function getEffectiveUrl(raw) {
+    if (!raw) return "";
+    raw = raw.trim().replace(/^['"]|['"]$/g, "");
+    if (!raw) return "";
+
+    // Check Drive patterns
+    const drivePatterns = [
+      /drive\.google\.com\/file\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/,
+      /drive\.google\.com\/open\?(?:.*&)?id=([a-zA-Z0-9_-]+)/,
+      /drive\.google\.com\/uc\?(?:.*&)?id=([a-zA-Z0-9_-]+)/,
+      /drive\.google\.com\/thumbnail\?(?:.*&)?id=([a-zA-Z0-9_-]+)/,
+      /drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/,
+      /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/
+    ];
+
+    for (const pat of drivePatterns) {
+      const match = raw.match(pat);
+      if (match) {
+        return {
+          url: "https://lh3.googleusercontent.com/d/" + match[1],
+          isDrive: true
+        };
+      }
+    }
+
+    // Bare ID check
+    if (raw.length >= 25 && raw.length <= 55 && /^[a-zA-Z0-9_-]+$/.test(raw)) {
+      return {
+        url: "https://lh3.googleusercontent.com/d/" + raw,
+        isDrive: true
+      };
+    }
+
+    let directUrl = raw;
+    if (!/^https?:\/\//i.test(directUrl) && !directUrl.startsWith("/")) {
+      directUrl = "https://" + directUrl;
+    }
+    return { url: directUrl, isDrive: false };
+  }
+
+  function updatePreview() {
+    const rawVal = input.value;
+    const res = getEffectiveUrl(rawVal);
+
+    if (!res || !res.url) {
+      wrapper.style.display = "none";
+      img.src = "";
+      warning.style.display = "none";
+      return;
+    }
+
+    wrapper.style.display = "block";
+    warning.style.display = "none";
+    badge.style.background = "#EFF6FF";
+    badge.style.color = "#1E40AF";
+    badge.textContent = res.isDrive ? "Google Drive détecté" : "Image externe";
+
+    img.onload = function() {
+      warning.style.display = "none";
+      badge.style.background = "#ECFDF5";
+      badge.style.color = "#065F46";
+      badge.textContent = res.isDrive ? "Google Drive valide ✓" : "Image valide ✓";
+    };
+
+    img.onerror = function() {
+      warning.style.display = "block";
+      badge.style.background = "#FEF2F2";
+      badge.style.color = "#991B1B";
+      badge.textContent = "Erreur d'accès ✗";
+    };
+
+    img.src = res.url;
+  }
+
+  input.addEventListener("input", updatePreview);
+  input.addEventListener("change", updatePreview);
+  updatePreview();
+});
+</script>
 {% endblock %}

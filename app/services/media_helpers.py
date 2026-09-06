@@ -4,9 +4,10 @@ import markdown
 
 DRIVE_FILE_ID_PATTERNS = [
     r"drive\.google\.com/file/(?:u/\d+/)?d/([a-zA-Z0-9_-]+)",
-    r"drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)",
+    r"drive\.google\.com/open\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/uc\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/thumbnail\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
+    r"drive\.google\.com/.*[?&]id=([a-zA-Z0-9_-]+)",
     r"lh3\.googleusercontent\.com/d/([a-zA-Z0-9_-]+)",
 ]
 
@@ -17,14 +18,26 @@ YOUTUBE_PATTERNS = [
 def extract_google_drive_id(url: str) -> Optional[str]:
     if not url:
         return None
+    url = url.strip().strip("'\"")
     for pattern in DRIVE_FILE_ID_PATTERNS:
         match = re.search(pattern, url)
         if match:
             return match.group(1)
+    # Check if raw ID was provided
+    if 25 <= len(url) <= 55 and not any(c in url for c in "/.?&=:#@") and re.match(r"^[a-zA-Z0-9_-]+$", url):
+        return url
     return None
 
 def process_photo_url(url: str) -> Dict[str, Any]:
-    url = url.strip() if url else ""
+    url = url.strip().strip("'\"") if url else ""
+    if not url:
+        return {
+            "is_drive": False,
+            "file_id": None,
+            "display_url": "",
+            "fallback_url": "",
+            "raw_url": "",
+        }
     drive_id = extract_google_drive_id(url)
     
     if drive_id:
@@ -37,7 +50,10 @@ def process_photo_url(url: str) -> Dict[str, Any]:
             "raw_url": url,
         }
     
-    # Generic direct image URL
+    # Generic direct image URL: ensure protocol
+    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("/")):
+        url = f"https://{url}"
+
     return {
         "is_drive": False,
         "file_id": None,

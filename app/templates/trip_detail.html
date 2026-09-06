@@ -18,8 +18,14 @@
 {% block content %}
 <!-- Trip Hero Header -->
 <header class="trip-hero">
-  {% if trip.cover_image_url %}
-  <img src="{{ trip.cover_image_url }}" class="trip-hero-bg" alt="{{ trip.title }}" />
+  {% if trip.cover_image_display_url or trip.cover_image_url %}
+  <img 
+    src="{{ trip.cover_image_display_url or trip.cover_image_url }}" 
+    class="trip-hero-bg" 
+    alt="{{ trip.title }}" 
+    referrerpolicy="no-referrer"
+    onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1504893524553-b855bce32c67?auto=format&fit=crop&w=1600&q=80';"
+  />
   {% endif %}
   <div class="trip-hero-overlay"></div>
   
@@ -122,6 +128,7 @@
                   data-caption="{{ media.caption or entry.title }}"
                   alt="{{ media.caption or entry.title }}" 
                   loading="lazy"
+                  referrerpolicy="no-referrer"
                   onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';"
                 />
                 {% if media.caption %}
@@ -196,7 +203,7 @@
 <div id="lightbox-modal" class="lightbox-modal">
   <div class="lightbox-content">
     <button id="lightbox-close" class="lightbox-close">&times;</button>
-    <img id="lightbox-img" class="lightbox-img" src="" alt="Aperçu photo" />
+    <img id="lightbox-img" class="lightbox-img" src="" alt="Aperçu photo" referrerpolicy="no-referrer" />
     <div id="lightbox-caption" class="lightbox-caption"></div>
   </div>
 </div>
