@@ -4,12 +4,15 @@
 {% block meta_description %}{{ trip.description or trip.title }}{% endblock %}
 
 {% block nav_actions %}
+{% if current_user and current_user.role == 'admin' %}
 <a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary btn-sm">
   <i class="fa-solid fa-plus"></i> Ajouter une étape
 </a>
 <a href="/trips/{{ trip.slug }}/edit" class="btn btn-secondary btn-sm">
   <i class="fa-solid fa-pen-to-square"></i> Modifier
 </a>
+{% endif %}
+{{ super() }}
 {% endblock %}
 
 {% block content %}
@@ -71,9 +74,11 @@
         <i class="fa-solid fa-route" style="color: var(--primary);"></i>
         Journal de Bord
       </h2>
+      {% if current_user and current_user.role == 'admin' %}
       <a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary btn-sm">
         <i class="fa-solid fa-plus"></i> Nouvelle étape
       </a>
+      {% endif %}
     </div>
 
     {% if entries_data %}
@@ -152,6 +157,7 @@
         </div>
         {% endif %}
 
+        {% if current_user and current_user.role == 'admin' %}
         <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
           <a href="/trips/{{ trip.slug }}/entries/{{ entry.id }}/edit" class="btn btn-secondary btn-sm">
             <i class="fa-solid fa-pen"></i> Modifier
@@ -162,6 +168,7 @@
             </button>
           </form>
         </div>
+        {% endif %}
       </article>
       {% endfor %}
     </div>
@@ -170,9 +177,11 @@
       <div class="empty-icon"><i class="fa-solid fa-compass-drafting"></i></div>
       <h3>Aucune étape pour ce voyage</h3>
       <p style="color: var(--text-muted); margin-bottom: 20px;">Ajoutez votre premier jour de voyage pour débuter le tracé sur la carte !</p>
+      {% if current_user and current_user.role == 'admin' %}
       <a href="/trips/{{ trip.slug }}/entries/new" class="btn btn-primary">
         <i class="fa-solid fa-plus"></i> Ajouter une étape
       </a>
+      {% endif %}
     </div>
     {% endif %}
   </div>

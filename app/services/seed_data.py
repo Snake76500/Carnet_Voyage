@@ -1,12 +1,48 @@
+import os
 from datetime import date
 from sqlalchemy.orm import Session
 from app.models.trip import Trip, DayEntry, Media
+from app.models.user import User
+from app.core.security import hash_password
+
+def seed_users(db: Session):
+    """Seed initial admin and guest accounts if not present."""
+    admin_username = os.getenv("ADMIN_USERNAME", "admin")
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
+    guest_username = os.getenv("GUEST_USERNAME", "invite")
+    guest_password = os.getenv("GUEST_PASSWORD", "voyage123")
+
+    admin = db.query(User).filter(User.username == admin_username).first()
+    if not admin:
+        admin = User(
+            username=admin_username,
+            hashed_password=hash_password(admin_password),
+            role="admin",
+            is_active=True
+        )
+        db.add(admin)
+
+    guest = db.query(User).filter(User.username == guest_username).first()
+    if not guest:
+        guest = User(
+            username=guest_username,
+            hashed_password=hash_password(guest_password),
+            role="guest",
+            is_active=True
+        )
+        db.add(guest)
+
+    db.commit()
 
 def create_demo_data(db: Session):
+    # Ensure default users exist
+    seed_users(db)
+
     # Check if demo trip already exists
     existing = db.query(Trip).filter(Trip.slug == "roadtrip-islande-route-1").first()
     if existing:
         return existing
+
 
     # 1. Iceland Roadtrip
     trip = Trip(

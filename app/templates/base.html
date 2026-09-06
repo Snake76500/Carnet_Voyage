@@ -34,9 +34,28 @@
       </a>
       <div class="nav-actions">
         {% block nav_actions %}
+        {% if current_user and current_user.role == 'admin' %}
+        <a href="/admin/users" class="btn btn-secondary btn-sm" title="Gérer les utilisateurs invités">
+          <i class="fa-solid fa-users"></i> Invités
+        </a>
         <a href="/trips/new" class="btn btn-primary btn-sm">
           <i class="fa-solid fa-plus"></i> Nouveau Voyage
         </a>
+        {% endif %}
+        {% if current_user %}
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-subtle); border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+          <i class="fa-solid fa-circle-user" style="color: var(--primary); font-size: 1.05rem;"></i>
+          <span>{{ current_user.username }}</span>
+          <span style="font-size: 0.7rem; text-transform: uppercase; background: {% if current_user.role == 'admin' %}var(--primary-light){% else %}var(--secondary-light){% endif %}; color: {% if current_user.role == 'admin' %}var(--primary){% else %}var(--secondary){% endif %}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">{{ current_user.role }}</span>
+        </span>
+        <a href="/logout" class="btn btn-secondary btn-sm" title="Déconnexion">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+        {% else %}
+        <a href="/login" class="btn btn-secondary btn-sm">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Connexion
+        </a>
+        {% endif %}
         {% endblock %}
       </div>
     </div>

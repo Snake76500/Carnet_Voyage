@@ -77,9 +77,15 @@
     <div class="empty-icon"><i class="fa-solid fa-map-location-dot"></i></div>
     <h3>Aucun voyage pour le moment</h3>
     <p style="color: var(--text-muted); margin-bottom: 20px;">Commencez dès maintenant en créant votre premier carnet de voyage !</p>
+    {% if current_user and current_user.role == 'admin' %}
     <a href="/trips/new" class="btn btn-primary">
       <i class="fa-solid fa-plus"></i> Créer mon premier voyage
     </a>
+    {% elif not current_user %}
+    <a href="/login" class="btn btn-secondary">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i> Se connecter
+    </a>
+    {% endif %}
   </div>
   {% endif %}
 </section>

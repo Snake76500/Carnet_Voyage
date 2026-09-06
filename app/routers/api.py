@@ -2,35 +2,60 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from slugify import slugify
+
 from app.core.database import get_db
+from app.core.auth import get_current_user, require_admin
+from app.core.security import hash_password
+from app.models.user import User
 from app.models.trip import Trip, DayEntry, Media
 from app.schemas.trip import (
     TripCreate, TripUpdate, TripResponse,
     DayEntryCreate, DayEntryUpdate, DayEntryResponse,
     MediaCreate, MediaResponse
 )
+from app.schemas.user import UserCreate, UserResponse
 from app.services.media_helpers import process_media_item, render_markdown
 from app.services.seed_data import create_demo_data
 
-router = APIRouter(prefix="/api", tags=["API"])
+router = APIRouter(prefix="/api", tags=["API"], dependencies=[Depends(get_current_user)])
 
 @router.get("/trips", response_model=List[TripResponse])
-def list_trips(db: Session = Depends(get_db)):
-    trips = db.query(Trip).order_by(Trip.start_date.desc().nullslast(), Trip.created_at.desc()).all()
+def list_trips(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Trip)
+    # Non-admin users only see public trips
+    if current_user.role != "admin":
+        query = query.filter(Trip.is_public == True)
+
+    trips = query.order_by(Trip.start_date.desc().nullslast(), Trip.created_at.desc()).all()
     return trips
 
 @router.get("/trips/{identifier}", response_model=TripResponse)
-def get_trip(identifier: str, db: Session = Depends(get_db)):
+def get_trip(
+    identifier: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if identifier.isdigit():
         trip = db.query(Trip).filter(Trip.id == int(identifier)).first()
     else:
         trip = db.query(Trip).filter(Trip.slug == identifier).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Voyage non trouvé")
+
+    if not trip.is_public and current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Voyage privé réservé à l'administrateur.")
+
     return trip
 
 @router.post("/trips", response_model=TripResponse, status_code=status.HTTP_201_CREATED)
-def create_trip(payload: TripCreate, db: Session = Depends(get_db)):
+def create_trip(
+    payload: TripCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     base_slug = payload.slug or slugify(payload.title)
     slug = base_slug
     counter = 1
@@ -53,7 +78,12 @@ def create_trip(payload: TripCreate, db: Session = Depends(get_db)):
     return trip
 
 @router.put("/trips/{trip_id}", response_model=TripResponse)
-def update_trip(trip_id: int, payload: TripUpdate, db: Session = Depends(get_db)):
+def update_trip(
+    trip_id: int,
+    payload: TripUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     trip = db.query(Trip).filter(Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Voyage non trouvé")
@@ -70,7 +100,11 @@ def update_trip(trip_id: int, payload: TripUpdate, db: Session = Depends(get_db)
     return trip
 
 @router.delete("/trips/{trip_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_trip(trip_id: int, db: Session = Depends(get_db)):
+def delete_trip(
+    trip_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     trip = db.query(Trip).filter(Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Voyage non trouvé")
@@ -80,7 +114,12 @@ def delete_trip(trip_id: int, db: Session = Depends(get_db)):
 
 # Day Entries CRUD
 @router.post("/trips/{trip_id}/entries", response_model=DayEntryResponse, status_code=status.HTTP_201_CREATED)
-def create_day_entry(trip_id: int, payload: DayEntryCreate, db: Session = Depends(get_db)):
+def create_day_entry(
+    trip_id: int,
+    payload: DayEntryCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     trip = db.query(Trip).filter(Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Voyage non trouvé")
@@ -122,7 +161,12 @@ def create_day_entry(trip_id: int, payload: DayEntryCreate, db: Session = Depend
     return entry
 
 @router.put("/entries/{entry_id}", response_model=DayEntryResponse)
-def update_day_entry(entry_id: int, payload: DayEntryUpdate, db: Session = Depends(get_db)):
+def update_day_entry(
+    entry_id: int,
+    payload: DayEntryUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     entry = db.query(DayEntry).filter(DayEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Étape non trouvée")
@@ -136,7 +180,11 @@ def update_day_entry(entry_id: int, payload: DayEntryUpdate, db: Session = Depen
     return entry
 
 @router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_day_entry(entry_id: int, db: Session = Depends(get_db)):
+def delete_day_entry(
+    entry_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     entry = db.query(DayEntry).filter(DayEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Étape non trouvée")
@@ -146,7 +194,12 @@ def delete_day_entry(entry_id: int, db: Session = Depends(get_db)):
 
 # Media CRUD
 @router.post("/entries/{entry_id}/media", response_model=MediaResponse, status_code=status.HTTP_201_CREATED)
-def add_media_to_entry(entry_id: int, payload: MediaCreate, db: Session = Depends(get_db)):
+def add_media_to_entry(
+    entry_id: int,
+    payload: MediaCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     entry = db.query(DayEntry).filter(DayEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Étape non trouvée")
@@ -164,7 +217,11 @@ def add_media_to_entry(entry_id: int, payload: MediaCreate, db: Session = Depend
     return media
 
 @router.delete("/media/{media_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_media(media_id: int, db: Session = Depends(get_db)):
+def delete_media(
+    media_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     media = db.query(Media).filter(Media.id == media_id).first()
     if not media:
         raise HTTPException(status_code=404, detail="Média non trouvé")
@@ -174,7 +231,11 @@ def delete_media(media_id: int, db: Session = Depends(get_db)):
 
 # GeoJSON for Leaflet Map
 @router.get("/trips/{identifier}/geojson")
-def get_trip_geojson(identifier: str, db: Session = Depends(get_db)):
+def get_trip_geojson(
+    identifier: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if identifier.isdigit():
         trip = db.query(Trip).options(
             joinedload(Trip.entries).joinedload(DayEntry.media)
@@ -186,6 +247,9 @@ def get_trip_geojson(identifier: str, db: Session = Depends(get_db)):
 
     if not trip:
         raise HTTPException(status_code=404, detail="Voyage non trouvé")
+
+    if not trip.is_public and current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Voyage privé réservé à l'administrateur.")
 
     features = []
     coordinates = []
@@ -244,6 +308,64 @@ def get_trip_geojson(identifier: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/seed")
-def seed_database(db: Session = Depends(get_db)):
+def seed_database(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     trip = create_demo_data(db)
     return {"message": "Données de démonstration initialisées avec succès", "trip_slug": trip.slug}
+
+# --------------------------------------------------------------------------
+# User Management (Admin Only)
+# --------------------------------------------------------------------------
+@router.get("/users", response_model=List[UserResponse])
+def list_users(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    return db.query(User).order_by(User.role.asc(), User.created_at.desc()).all()
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user_api(
+    payload: UserCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    clean_username = payload.username.strip()
+    if len(clean_username) < 3:
+        raise HTTPException(status_code=400, detail="Nom d'utilisateur trop court (min. 3 caractères).")
+    
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe trop court (min. 6 caractères).")
+
+    existing = db.query(User).filter(User.username == clean_username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Le nom d'utilisateur « {clean_username} » est déjà utilisé.")
+
+    new_user = User(
+        username=clean_username,
+        hashed_password=hash_password(payload.password),
+        role=payload.role if payload.role in ("admin", "guest") else "guest",
+        is_active=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_api(
+    user_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Impossible de supprimer votre propre compte administrateur.")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    db.delete(user)
+    db.commit()
+    return None

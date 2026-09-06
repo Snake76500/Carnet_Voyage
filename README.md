@@ -60,6 +60,12 @@ Un site web personnel de carnet de voyage interactif inspiré de **Polarsteps** 
 
 *Note : Au premier lancement, des voyages de démonstration (Islande et Japon) avec coordonnées réelles et médias sont automatiquement créés pour vous permettre de tester immédiatement.*
 
+4. **Comptes utilisateurs & Rôles :**
+   - **Administrateur** : `admin` / `admin123` (Création, édition et suppression de voyages et étapes).
+   - **Invité** : `invite` / `voyage123` (Consultation des voyages privés et publics en lecture seule).
+   - **Visiteur anonyme** : Accès uniquement aux voyages configurés comme « Public ».
+   - Page de connexion : [http://localhost:8000/login](http://localhost:8000/login)
+
 ---
 
 ### Option B : Déploiement avec Docker Compose (Production / PostgreSQL)

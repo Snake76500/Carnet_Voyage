@@ -6,7 +6,7 @@ import uvicorn
 
 from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
-from app.routers import web, api
+from app.routers import web, api, auth
 from app.services.seed_data import create_demo_data
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include Routers
+app.include_router(auth.router)
 app.include_router(web.router)
 app.include_router(api.router)
 
