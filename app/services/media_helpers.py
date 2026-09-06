@@ -3,10 +3,11 @@ from typing import Dict, Any, Optional
 import markdown
 
 DRIVE_FILE_ID_PATTERNS = [
-    r"drive\.google\.com/file/d/([a-zA-Z0-9_-]+)",
+    r"drive\.google\.com/file/(?:u/\d+/)?d/([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/uc\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/thumbnail\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
+    r"lh3\.googleusercontent\.com/d/([a-zA-Z0-9_-]+)",
 ]
 
 YOUTUBE_PATTERNS = [
@@ -30,8 +31,8 @@ def process_photo_url(url: str) -> Dict[str, Any]:
         return {
             "is_drive": True,
             "file_id": drive_id,
-            # sz=w1200 provides high resolution while being performant
-            "display_url": f"https://drive.google.com/thumbnail?id={drive_id}&sz=w1200",
+            # lh3.googleusercontent.com is Google's CDN direct link for public files
+            "display_url": f"https://lh3.googleusercontent.com/d/{drive_id}",
             "fallback_url": f"https://drive.google.com/file/d/{drive_id}/view?usp=sharing",
             "raw_url": url,
         }
