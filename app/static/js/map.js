@@ -256,4 +256,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Ensure Leaflet recalculates viewport sizes properly on mobile screens and rotations
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 250);
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+  });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+  });
 });

@@ -1022,19 +1022,56 @@ textarea.form-control {
 /* Responsive */
 @media (max-width: 992px) {
   .dual-pane-container {
-    flex-direction: column;
-  }
-  .timeline-pane {
-    max-width: 100%;
-    flex: 1 1 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 16px 12px;
+    gap: 20px;
   }
   .map-pane {
-    position: relative;
-    top: 0;
-    height: 400px;
-    flex: 1 1 100%;
+    order: 1 !important; /* Place map at the top on mobile so it is immediately visible */
+    position: relative !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 380px !important;
+    min-height: 380px !important;
+    flex: none !important;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 8px;
+    z-index: 10;
+  }
+  .timeline-pane {
+    order: 2 !important; /* Place journal below map */
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+  #map {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 380px !important;
   }
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
+  .trip-hero {
+    height: 240px;
+    padding: 20px 16px;
+  }
+  .trip-header-main h1 {
+    font-size: 1.6rem;
+  }
 }
+
+@media (max-width: 600px) {
+  .map-pane {
+    height: 320px;
+    min-height: 320px;
+  }
+  #map {
+    min-height: 320px;
+  }
+  .picker-map-container {
+    height: 260px;
+  }
+}
+

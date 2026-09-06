@@ -214,4 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // Ensure picker map renders correctly on mobile
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 250);
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+  });
 });
