@@ -16,10 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollWheelZoom: true,
   }).setView([20, 0], 2);
 
-  // 2. Add modern clean tile layer (CartoDB Positron / OSM style)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
+  // 2. Add OpenStreetMap tile layer (no API key required, 100% free)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs',
     maxZoom: 19
   }).addTo(map);
 

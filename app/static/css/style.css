@@ -866,6 +866,59 @@ textarea.form-control {
 }
 
 /* Location Picker Map in Form */
+.address-search-box {
+  position: relative;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.address-search-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.address-search-bar input {
+  flex: 1;
+}
+
+.address-suggestions-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 1050;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.address-suggestion-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s ease;
+  color: var(--text-main);
+}
+
+.address-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.address-suggestion-item:hover {
+  background: var(--bg-subtle);
+  color: var(--primary);
+}
+
 .picker-map-container {
   height: 280px;
   border-radius: var(--radius-md);

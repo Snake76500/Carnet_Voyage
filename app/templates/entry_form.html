@@ -47,11 +47,23 @@
 
       <!-- Interactive Mini-Map for GPS Pointing -->
       <div class="form-group">
-        <label class="form-label">Pointer le lieu sur la carte (cliquez ou déplacez le marqueur) :</label>
+        <label class="form-label">Pointer le lieu sur la carte (recherche d'adresse ou clic) :</label>
+        
+        <!-- Address Search input with OpenStreetMap Nominatim -->
+        <div class="address-search-box">
+          <div class="address-search-bar">
+            <input type="text" id="address-search-input" class="form-control" placeholder="🔍 Rechercher une adresse, une ville, un lieu (ex: Paris, Skógafoss, Colisée Rome)..." autocomplete="off" />
+            <button type="button" id="address-search-btn" class="btn btn-secondary">
+              Rechercher
+            </button>
+          </div>
+          <ul id="address-suggestions" class="address-suggestions-list" style="display: none;"></ul>
+        </div>
+
         <div class="picker-map-container">
           <div id="picker-map"></div>
         </div>
-        <div class="form-hint">💡 Cliquez n'importe où sur la carte pour définir automatiquement la latitude et la longitude.</div>
+        <div class="form-hint">💡 Tapez une adresse ci-dessus ou cliquez directement sur la carte pour définir les coordonnées.</div>
       </div>
 
       <!-- Markdown Body -->

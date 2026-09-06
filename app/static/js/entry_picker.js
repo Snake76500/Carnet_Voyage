@@ -17,8 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const map = L.map('picker-map').setView([initialLat, initialLng], hasExistingCoords ? 10 : 3);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  // Use official OpenStreetMap tiles (no API key required, 100% free)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributeurs',
     maxZoom: 19
   }).addTo(map);
 
@@ -62,6 +63,110 @@ document.addEventListener('DOMContentLoaded', () => {
   map.on('click', (e) => {
     updateMarker(e.latlng.lat, e.latlng.lng, true);
   });
+
+  // --- Address Geocoding Search (OpenStreetMap Nominatim) ---
+  const searchInput = document.getElementById('address-search-input');
+  const searchBtn = document.getElementById('address-search-btn');
+  const suggestionsList = document.getElementById('address-suggestions');
+
+  if (searchInput && searchBtn && suggestionsList) {
+    let debounceTimer = null;
+
+    function performSearch(selectFirst = false) {
+      const query = searchInput.value.trim();
+      if (!query) {
+        suggestionsList.style.display = 'none';
+        return;
+      }
+
+      searchBtn.disabled = true;
+      searchBtn.textContent = '...';
+
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
+        .then(res => res.json())
+        .then(results => {
+          searchBtn.disabled = false;
+          searchBtn.textContent = 'Rechercher';
+
+          if (!results || results.length === 0) {
+            suggestionsList.innerHTML = '<li class="address-suggestion-item" style="color: var(--text-muted); cursor: default;">Aucun lieu trouvé pour cette recherche.</li>';
+            suggestionsList.style.display = 'block';
+            return;
+          }
+
+          if (selectFirst) {
+            selectLocation(results[0]);
+            return;
+          }
+
+          suggestionsList.innerHTML = '';
+          results.forEach(place => {
+            const li = document.createElement('li');
+            li.className = 'address-suggestion-item';
+            li.innerHTML = `📍 <span>${place.display_name}</span>`;
+            li.addEventListener('click', () => {
+              selectLocation(place);
+            });
+            suggestionsList.appendChild(li);
+          });
+          suggestionsList.style.display = 'block';
+        })
+        .catch(err => {
+          console.error('Erreur recherche d\'adresse :', err);
+          searchBtn.disabled = false;
+          searchBtn.textContent = 'Rechercher';
+        });
+    }
+
+    function selectLocation(place) {
+      const lat = parseFloat(place.lat);
+      const lng = parseFloat(place.lon);
+      updateMarker(lat, lng, false);
+      map.setView([lat, lng], 14);
+
+      // Pre-fill location name if empty or user wants it
+      if (locationInput) {
+        const parts = place.display_name.split(',');
+        const shortName = parts.slice(0, 2).join(',').trim();
+        locationInput.value = shortName || place.display_name;
+      }
+
+      suggestionsList.style.display = 'none';
+      searchInput.value = place.display_name;
+    }
+
+    searchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      performSearch(false);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch(true);
+      } else if (e.key === 'Escape') {
+        suggestionsList.style.display = 'none';
+      }
+    });
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      if (searchInput.value.trim().length >= 3) {
+        debounceTimer = setTimeout(() => {
+          performSearch(false);
+        }, 400);
+      } else {
+        suggestionsList.style.display = 'none';
+      }
+    });
+
+    // Close suggestions on outside click
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !suggestionsList.contains(e.target) && !searchBtn.contains(e.target)) {
+        suggestionsList.style.display = 'none';
+      }
+    });
+  }
 
   // Dynamic Media Rows Management
   const mediaContainer = document.getElementById('media-container');
