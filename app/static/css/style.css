@@ -1008,7 +1008,7 @@ textarea.form-control {
    ========================================================================== */
 
 .modal-backdrop {
-  display: none;
+  display: none !important;
   position: fixed;
   inset: 0;
   width: 100vw;

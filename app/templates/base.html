@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=2">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261023b">
 
   {% block extra_head %}{% endblock %}
 </head>
@@ -70,8 +70,168 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   {% if current_user and current_user.role == 'admin' %}
+  <!-- Dedicated styles for admin duplicate modal (guarantees proper layout regardless of browser cache) -->
+  <style>
+    .modal-backdrop {
+      display: none !important;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-backdrop.active {
+      display: flex !important;
+    }
+    .modal-dialog {
+      background: #FFFFFF;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+      border: 1px solid var(--border-color, #E2E8F0);
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalScaleUp {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color, #E2E8F0);
+      background: #FFFFFF;
+    }
+    .modal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .modal-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #FFE8E8;
+      color: #FF5A5F;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #1E293B;
+      line-height: 1.2;
+      margin: 0;
+    }
+    .modal-subtitle {
+      font-size: 0.82rem;
+      color: #64748B;
+      margin: 3px 0 0;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.6rem;
+      color: #94A3B8;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close-btn:hover {
+      background: #F1F5F9;
+      color: #1E293B;
+    }
+    .modal-body {
+      padding: 24px;
+    }
+    .duplicate-info-box {
+      padding: 12px 16px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      font-size: 0.86rem;
+      color: #166534;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      line-height: 1.5;
+    }
+    .duplicate-info-box i {
+      color: #16A34A;
+      font-size: 1.1rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .custom-checkbox-card {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color, #E2E8F0);
+      background: #F8FAFC;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.18s;
+    }
+    .custom-checkbox-card:hover {
+      background: #EEF2F6;
+    }
+    .custom-checkbox-card input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: #FF5A5F;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-card-content {
+      display: flex;
+      flex-direction: column;
+    }
+    .checkbox-card-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #1E293B;
+    }
+    .checkbox-card-desc {
+      font-size: 0.78rem;
+      color: #64748B;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .modal-footer {
+      padding: 16px 24px;
+      background: #F1F5F9;
+      border-top: 1px solid var(--border-color, #E2E8F0);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+  </style>
+
   <!-- Duplicate Trip Modal (Admin Only) -->
-  <div id="duplicate-modal" class="modal-backdrop" aria-hidden="true">
+  <div id="duplicate-modal" class="modal-backdrop" aria-hidden="true" style="display: none !important;">
     <div class="modal-dialog">
       <div class="modal-header">
         <div class="modal-title-group">
@@ -142,6 +302,7 @@
     titleInput.value = 'Copie de ' + title;
     publicCheckbox.checked = false;
     
+    modal.style.setProperty('display', 'flex', 'important');
     modal.classList.add('active');
     setTimeout(() => {
       titleInput.focus();
@@ -153,6 +314,7 @@
     const modal = document.getElementById('duplicate-modal');
     if (modal) {
       modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
     }
   }
 
