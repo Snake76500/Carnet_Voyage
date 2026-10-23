@@ -69,6 +69,106 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+  {% if current_user and current_user.role == 'admin' %}
+  <!-- Duplicate Trip Modal (Admin Only) -->
+  <div id="duplicate-modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon">
+            <i class="fa-solid fa-clone"></i>
+          </div>
+          <div>
+            <h3 class="modal-title">Dupliquer le voyage</h3>
+            <p class="modal-subtitle">Créer une copie complète de ce carnet et de ses étapes</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeDuplicateModal()" aria-label="Fermer">&times;</button>
+      </div>
+
+      <form id="duplicate-form" method="POST" action="">
+        <div class="modal-body">
+          <div class="duplicate-info-box">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>
+              Toutes les <strong>étapes, coordonnées géographiques, récits et médias</strong> (photos, vidéos) seront dupliqués dans le nouveau carnet.
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 18px;">
+            <label for="duplicate-title-input" class="form-label" style="font-weight: 700;">Titre du nouveau voyage *</label>
+            <input 
+              type="text" 
+              id="duplicate-title-input" 
+              name="title" 
+              class="form-control" 
+              placeholder="Ex: Copie de Road Trip en Islande"
+              required 
+              maxlength="255"
+            />
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="custom-checkbox-card" for="duplicate-public-checkbox">
+              <input type="checkbox" id="duplicate-public-checkbox" name="is_public" value="true" />
+              <div class="checkbox-card-content">
+                <span class="checkbox-card-title">Rendre le voyage public immédiatement</span>
+                <span class="checkbox-card-desc">Si décoché, le nouveau voyage restera privé (visible uniquement par vous) le temps de vos ajustements.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeDuplicateModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="duplicate-submit-btn">
+            <i class="fa-solid fa-copy"></i> Créer la copie
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  function openDuplicateModal(slug, title, isPublic) {
+    const modal = document.getElementById('duplicate-modal');
+    const form = document.getElementById('duplicate-form');
+    const titleInput = document.getElementById('duplicate-title-input');
+    const publicCheckbox = document.getElementById('duplicate-public-checkbox');
+    
+    if (!modal || !form) return;
+    
+    form.action = '/trips/' + encodeURIComponent(slug) + '/duplicate';
+    titleInput.value = 'Copie de ' + title;
+    publicCheckbox.checked = false;
+    
+    modal.classList.add('active');
+    setTimeout(() => {
+      titleInput.focus();
+      titleInput.select();
+    }, 100);
+  }
+
+  function closeDuplicateModal() {
+    const modal = document.getElementById('duplicate-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDuplicateModal();
+  });
+
+  document.addEventListener('click', function(e) {
+    const modal = document.getElementById('duplicate-modal');
+    if (modal && e.target === modal) {
+      closeDuplicateModal();
+    }
+  });
+  </script>
+  {% endif %}
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -83,7 +83,23 @@
     </form>
 
     {% if is_edit and trip %}
-    <div style="margin-top: 40px; padding-top: 24px; border-top: 2px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+    <div style="margin-top: 36px; padding: 18px 20px; background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 3px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-copy" style="color: var(--primary);"></i> Dupliquer ce carnet
+        </h4>
+        <p style="font-size: 0.84rem; color: var(--text-muted); margin: 0;">Créer une copie indépendante avec l'ensemble des étapes et médias pour un nouveau voyage.</p>
+      </div>
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm" 
+        onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})"
+      >
+        <i class="fa-solid fa-copy"></i> Dupliquer ce voyage
+      </button>
+    </div>
+
+    <div style="margin-top: 32px; padding-top: 24px; border-top: 2px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
       <div>
         <h4 style="color: #DC2626; font-size: 1rem; margin-bottom: 4px;">Zone de danger</h4>
         <p style="font-size: 0.85rem; color: var(--text-muted);">Supprimer définitivement ce voyage et toutes ses étapes associées.</p>

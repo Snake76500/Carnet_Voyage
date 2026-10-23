@@ -76,6 +76,10 @@ class TripUpdate(BaseModel):
     cover_image_url: Optional[str] = None
     is_public: Optional[bool] = None
 
+class TripDuplicate(BaseModel):
+    title: Optional[str] = None
+    is_public: Optional[bool] = None
+
 class TripResponse(TripBase):
     id: int
     slug: str
@@ -84,3 +88,4 @@ class TripResponse(TripBase):
 
     class Config:
         from_attributes = True
+

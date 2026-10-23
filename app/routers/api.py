@@ -9,13 +9,15 @@ from app.core.security import hash_password
 from app.models.user import User
 from app.models.trip import Trip, DayEntry, Media
 from app.schemas.trip import (
-    TripCreate, TripUpdate, TripResponse,
+    TripCreate, TripUpdate, TripDuplicate, TripResponse,
     DayEntryCreate, DayEntryUpdate, DayEntryResponse,
     MediaCreate, MediaResponse
 )
 from app.schemas.user import UserCreate, UserResponse
 from app.services.media_helpers import process_media_item, render_markdown
 from app.services.seed_data import create_demo_data
+from app.services.trip_service import duplicate_trip
+
 
 router = APIRouter(prefix="/api", tags=["API"], dependencies=[Depends(get_current_user)])
 
@@ -111,6 +113,36 @@ def delete_trip(
     db.delete(trip)
     db.commit()
     return None
+
+@router.post("/trips/{identifier}/duplicate", response_model=TripResponse, status_code=status.HTTP_201_CREATED)
+def duplicate_trip_api(
+    identifier: str,
+    payload: Optional[TripDuplicate] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Trip).options(
+        joinedload(Trip.entries).joinedload(DayEntry.media)
+    )
+    if identifier.isdigit():
+        original_trip = query.filter(Trip.id == int(identifier)).first()
+    else:
+        original_trip = query.filter(Trip.slug == identifier).first()
+
+    if not original_trip:
+        raise HTTPException(status_code=404, detail="Voyage non trouvé")
+
+    new_title = payload.title if payload else None
+    is_public = payload.is_public if payload else None
+
+    new_trip = duplicate_trip(
+        db=db,
+        original_trip=original_trip,
+        new_title=new_title,
+        is_public=is_public
+    )
+    return new_trip
+
 
 # Day Entries CRUD
 @router.post("/trips/{trip_id}/entries", response_model=DayEntryResponse, status_code=status.HTTP_201_CREATED)

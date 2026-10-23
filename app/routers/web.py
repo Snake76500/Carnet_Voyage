@@ -13,6 +13,8 @@ from app.models.user import User
 from app.models.trip import Trip, DayEntry, Media
 from app.services.media_helpers import process_media_item, render_markdown, process_photo_url
 from app.services.seed_data import create_demo_data
+from app.services.trip_service import duplicate_trip
+
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(get_current_user)])
 templates = Jinja2Templates(directory="app/templates")
@@ -294,6 +296,7 @@ def create_trip_action(
 def trip_detail(
     request: Request,
     slug: str,
+    duplicated: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -332,7 +335,8 @@ def trip_detail(
             "trip": trip,
             "entries_data": entries_data,
             "total_entries": len(sorted_entries),
-            "current_user": current_user
+            "current_user": current_user,
+            "duplicated": bool(duplicated)
         }
     )
 
@@ -396,6 +400,33 @@ def delete_trip_action(
     db.delete(trip)
     db.commit()
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/trips/{slug}/duplicate")
+def duplicate_trip_action(
+    slug: str,
+    title: Optional[str] = Form(None),
+    is_public: Optional[bool] = Form(False),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    original_trip = db.query(Trip).options(
+        joinedload(Trip.entries).joinedload(DayEntry.media)
+    ).filter(Trip.slug == slug).first()
+
+    if not original_trip:
+        raise HTTPException(status_code=404, detail="Voyage non trouvé")
+
+    new_trip = duplicate_trip(
+        db=db,
+        original_trip=original_trip,
+        new_title=title,
+        is_public=bool(is_public)
+    )
+
+    return RedirectResponse(
+        url=f"/trips/{new_trip.slug}?duplicated=1",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 # Day Entries Forms
 @router.get("/trips/{slug}/entries/new", response_class=HTMLResponse)

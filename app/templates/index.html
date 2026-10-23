@@ -70,9 +70,21 @@
             <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
             <strong>{{ trip.entries|length }}</strong> étape{{ 's' if trip.entries|length > 1 else '' }}
           </div>
-          <a href="/trips/{{ trip.slug }}" class="btn btn-secondary btn-sm">
-            Voir l'itinéraire <i class="fa-solid fa-arrow-right"></i>
-          </a>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            {% if current_user and current_user.role == 'admin' %}
+            <button 
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})" 
+              title="Dupliquer ce carnet de voyage"
+            >
+              <i class="fa-solid fa-copy"></i> Dupliquer
+            </button>
+            {% endif %}
+            <a href="/trips/{{ trip.slug }}" class="btn btn-secondary btn-sm">
+              Voir l'itinéraire <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
         </div>
       </div>
     </article>

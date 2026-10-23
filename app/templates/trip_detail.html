@@ -11,6 +11,9 @@
 <a href="/trips/{{ trip.slug }}/edit" class="btn btn-secondary btn-sm">
   <i class="fa-solid fa-pen-to-square"></i> Modifier
 </a>
+<button type="button" class="btn btn-secondary btn-sm" onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})" title="Dupliquer ce carnet de voyage">
+  <i class="fa-solid fa-copy"></i> Dupliquer
+</button>
 {% endif %}
 {{ super() }}
 {% endblock %}
@@ -56,7 +59,12 @@
       </div>
     </div>
 
-    <div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      {% if current_user and current_user.role == 'admin' %}
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})" title="Dupliquer ce voyage">
+        <i class="fa-solid fa-copy"></i> Dupliquer
+      </button>
+      {% endif %}
       <button type="button" class="btn btn-secondary btn-sm" id="share-trip-btn" onclick="copyTripShareLink()">
         <i class="fa-solid fa-share-nodes"></i> Partager le voyage
       </button>
@@ -69,6 +77,23 @@
   
   <!-- Left Column: Timeline stream -->
   <div class="timeline-pane">
+    {% if duplicated %}
+    <div class="alert-banner-success" style="margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 38px; height: 38px; border-radius: 50%; background: #D1FAE5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+          <strong style="font-size: 1rem; color: #064E3B; display: block; margin-bottom: 2px;">Voyage dupliqué avec succès !</strong>
+          <span style="font-size: 0.88rem; color: #047857;">Toutes les étapes, récits et médias ont été copiés dans ce nouveau carnet. Vous pouvez désormais le personnaliser à votre guise.</span>
+        </div>
+      </div>
+      <a href="/trips/{{ trip.slug }}/edit" class="btn btn-sm" style="background: #059669; color: white; border-radius: var(--radius-full); white-space: nowrap;">
+        <i class="fa-solid fa-pen"></i> Personnaliser
+      </a>
+    </div>
+    {% endif %}
+
     {% if trip.description %}
     <div style="background: white; padding: 20px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 28px; font-size: 1.05rem; color: var(--text-muted); line-height: 1.6;">
       {{ trip.description }}
