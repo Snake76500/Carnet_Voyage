@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from slugify import slugify
@@ -402,19 +402,34 @@ def delete_trip_action(
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/trips/{slug}/duplicate")
+@router.post("/trips/{slug}/duplicate/")
+@router.post("/trips/duplicate")
+@router.post("/trips/duplicate/")
+@router.post("/admin/trips/duplicate")
 def duplicate_trip_action(
-    slug: str,
+    request: Request,
+    slug: Optional[str] = None,
+    trip_slug: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
     is_public: Optional[bool] = Form(False),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    original_trip = db.query(Trip).options(
+    target = slug or trip_slug
+    if not target:
+        raise HTTPException(status_code=400, detail="Identifiant du voyage manquant.")
+
+    target = target.strip()
+    query = db.query(Trip).options(
         joinedload(Trip.entries).joinedload(DayEntry.media)
-    ).filter(Trip.slug == slug).first()
+    )
+    if target.isdigit():
+        original_trip = query.filter(Trip.id == int(target)).first()
+    else:
+        original_trip = query.filter(Trip.slug == target).first()
 
     if not original_trip:
-        raise HTTPException(status_code=404, detail="Voyage non trouvé")
+        raise HTTPException(status_code=404, detail=f"Voyage « {target} » non trouvé.")
 
     new_trip = duplicate_trip(
         db=db,
@@ -423,8 +438,20 @@ def duplicate_trip_action(
         is_public=bool(is_public)
     )
 
+    redirect_url = f"/trips/{new_trip.slug}?duplicated=1"
+
+    # Support AJAX fetch requests with JSON response
+    accept_header = request.headers.get("accept", "")
+    if "application/json" in accept_header or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse({
+            "success": True,
+            "redirect_url": redirect_url,
+            "title": new_trip.title,
+            "slug": new_trip.slug
+        })
+
     return RedirectResponse(
-        url=f"/trips/{new_trip.slug}?duplicated=1",
+        url=redirect_url,
         status_code=status.HTTP_303_SEE_OTHER
     )
 

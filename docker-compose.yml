@@ -31,6 +31,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-travel-journal-super-secret-key-change-in-production}
     ports:
       - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
 

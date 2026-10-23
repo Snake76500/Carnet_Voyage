@@ -246,8 +246,17 @@
         <button type="button" class="modal-close-btn" onclick="closeDuplicateModal()" aria-label="Fermer">&times;</button>
       </div>
 
-      <form id="duplicate-form" method="POST" action="">
+      <form id="duplicate-form" method="POST" action="/admin/trips/duplicate">
+        <input type="hidden" id="duplicate-slug-input" name="trip_slug" value="" />
+
         <div class="modal-body">
+          <div id="duplicate-error-box" style="display: none; padding: 12px 16px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 12px; color: #991B1B; font-size: 0.88rem; margin-bottom: 16px; line-height: 1.4;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <i class="fa-solid fa-triangle-exclamation" style="margin-top: 2px;"></i>
+              <span id="duplicate-error-text">Une erreur est survenue.</span>
+            </div>
+          </div>
+
           <div class="duplicate-info-box">
             <i class="fa-solid fa-circle-info"></i>
             <div>
@@ -294,15 +303,28 @@
     const modal = document.getElementById('duplicate-modal');
     const form = document.getElementById('duplicate-form');
     const titleInput = document.getElementById('duplicate-title-input');
+    const slugInput = document.getElementById('duplicate-slug-input');
     const publicCheckbox = document.getElementById('duplicate-public-checkbox');
+    const errorBox = document.getElementById('duplicate-error-box');
+    const submitBtn = document.getElementById('duplicate-submit-btn');
     
     if (!modal || !form) {
       console.warn('Duplicate modal or form element missing.');
       return;
     }
     
-    form.action = '/trips/' + encodeURIComponent(slug) + '/duplicate';
-    titleInput.value = 'Copie de ' + (title || 'Voyage');
+    if (errorBox) errorBox.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Créer la copie';
+    }
+
+    if (slugInput) slugInput.value = slug || '';
+    form.action = slug ? ('/trips/' + encodeURIComponent(slug) + '/duplicate') : '/admin/trips/duplicate';
+    
+    if (titleInput) {
+      titleInput.value = 'Copie de ' + (title || 'Voyage');
+    }
     if (publicCheckbox) {
       publicCheckbox.checked = false;
     }
@@ -328,6 +350,73 @@
   // Expose to window scope
   window.openDuplicateModal = openDuplicateModal;
   window.closeDuplicateModal = closeDuplicateModal;
+
+  // Intercept modal form submit with AJAX for smooth UX and error handling
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('duplicate-form');
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('duplicate-submit-btn');
+        const errorBox = document.getElementById('duplicate-error-box');
+        const errorText = document.getElementById('duplicate-error-text');
+        
+        if (errorBox) errorBox.style.display = 'none';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Copie en cours...';
+        }
+
+        const formData = new FormData(form);
+        const targetUrl = form.action || '/admin/trips/duplicate';
+
+        try {
+          const response = await fetch(targetUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.redirect_url) {
+              window.location.href = data.redirect_url;
+              return;
+            }
+            window.location.reload();
+          } else {
+            let msg = "Impossible de dupliquer ce voyage.";
+            try {
+              const err = await response.json();
+              if (err && err.detail) {
+                msg = err.detail;
+              }
+            } catch (errJson) {
+              if (response.status === 404) {
+                msg = "Le serveur n'a pas trouvé la route (404). Si vous venez d'ajouter la fonctionnalité, redémarrez votre serveur (Uvicorn ou conteneur Docker).";
+              }
+            }
+            if (errorBox && errorText) {
+              errorText.textContent = msg;
+              errorBox.style.display = 'block';
+            } else {
+              alert(msg);
+            }
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Créer la copie';
+            }
+          }
+        } catch (netErr) {
+          console.warn('Fetch fallback, submitting form directly:', netErr);
+          form.submit();
+        }
+      });
+    }
+  });
 
   // Global event delegation for all duplicate buttons across all pages
   document.addEventListener('click', function(e) {
