@@ -1,6 +1,8 @@
+import os
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import markdown
+import httpx
 
 DRIVE_FILE_ID_PATTERNS = [
     r"drive\.google\.com/file/(?:u/\d+/)?d/([a-zA-Z0-9_-]+)",
@@ -9,6 +11,12 @@ DRIVE_FILE_ID_PATTERNS = [
     r"drive\.google\.com/thumbnail\?(?:.*&)?id=([a-zA-Z0-9_-]+)",
     r"drive\.google\.com/.*[?&]id=([a-zA-Z0-9_-]+)",
     r"lh3\.googleusercontent\.com/d/([a-zA-Z0-9_-]+)",
+]
+
+DRIVE_FOLDER_PATTERNS = [
+    r"drive\.google\.com/drive/(?:u/\d+/)?folders/([a-zA-Z0-9_-]+)",
+    r"drive\.google\.com/folderview\?id=([a-zA-Z0-9_-]+)",
+    r"drive\.google\.com/open\?(?:.*&)?id=([a-zA-Z0-9_-]+)(?:.*&)?export=download",
 ]
 
 YOUTUBE_PATTERNS = [
