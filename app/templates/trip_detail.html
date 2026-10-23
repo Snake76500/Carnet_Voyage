@@ -11,7 +11,14 @@
 <a href="/trips/{{ trip.slug }}/edit" class="btn btn-secondary btn-sm">
   <i class="fa-solid fa-pen-to-square"></i> Modifier
 </a>
-<button type="button" class="btn btn-secondary btn-sm" onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})" title="Dupliquer ce carnet de voyage">
+<button 
+  type="button" 
+  class="btn btn-secondary btn-sm btn-duplicate-trip" 
+  data-slug="{{ trip.slug }}"
+  data-title="{{ trip.title }}"
+  data-public="{{ 'true' if trip.is_public else 'false' }}"
+  title="Dupliquer ce carnet de voyage"
+>
   <i class="fa-solid fa-copy"></i> Dupliquer
 </button>
 {% endif %}
@@ -61,7 +68,14 @@
 
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
       {% if current_user and current_user.role == 'admin' %}
-      <button type="button" class="btn btn-secondary btn-sm" onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})" title="Dupliquer ce voyage">
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm btn-duplicate-trip" 
+        data-slug="{{ trip.slug }}"
+        data-title="{{ trip.title }}"
+        data-public="{{ 'true' if trip.is_public else 'false' }}"
+        title="Dupliquer ce voyage"
+      >
         <i class="fa-solid fa-copy"></i> Dupliquer
       </button>
       {% endif %}

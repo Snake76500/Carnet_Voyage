@@ -92,8 +92,10 @@
       </div>
       <button 
         type="button" 
-        class="btn btn-secondary btn-sm" 
-        onclick="openDuplicateModal('{{ trip.slug }}', {{ trip.title | tojson }}, {{ 'true' if trip.is_public else 'false' }})"
+        class="btn btn-secondary btn-sm btn-duplicate-trip" 
+        data-slug="{{ trip.slug }}"
+        data-title="{{ trip.title }}"
+        data-public="{{ 'true' if trip.is_public else 'false' }}"
       >
         <i class="fa-solid fa-copy"></i> Dupliquer ce voyage
       </button>

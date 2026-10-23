@@ -296,18 +296,25 @@
     const titleInput = document.getElementById('duplicate-title-input');
     const publicCheckbox = document.getElementById('duplicate-public-checkbox');
     
-    if (!modal || !form) return;
+    if (!modal || !form) {
+      console.warn('Duplicate modal or form element missing.');
+      return;
+    }
     
     form.action = '/trips/' + encodeURIComponent(slug) + '/duplicate';
-    titleInput.value = 'Copie de ' + title;
-    publicCheckbox.checked = false;
+    titleInput.value = 'Copie de ' + (title || 'Voyage');
+    if (publicCheckbox) {
+      publicCheckbox.checked = false;
+    }
     
     modal.style.setProperty('display', 'flex', 'important');
     modal.classList.add('active');
     setTimeout(() => {
-      titleInput.focus();
-      titleInput.select();
-    }, 100);
+      if (titleInput) {
+        titleInput.focus();
+        titleInput.select();
+      }
+    }, 80);
   }
 
   function closeDuplicateModal() {
@@ -318,15 +325,37 @@
     }
   }
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeDuplicateModal();
-  });
+  // Expose to window scope
+  window.openDuplicateModal = openDuplicateModal;
+  window.closeDuplicateModal = closeDuplicateModal;
 
+  // Global event delegation for all duplicate buttons across all pages
   document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-duplicate-trip');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const slug = btn.getAttribute('data-slug');
+      const title = btn.getAttribute('data-title');
+      const isPublic = btn.getAttribute('data-public') === 'true';
+      openDuplicateModal(slug, title, isPublic);
+      return;
+    }
+
+    const closeBtn = e.target.closest('.modal-close-btn');
+    if (closeBtn) {
+      closeDuplicateModal();
+      return;
+    }
+
     const modal = document.getElementById('duplicate-modal');
     if (modal && e.target === modal) {
       closeDuplicateModal();
     }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDuplicateModal();
   });
   </script>
   {% endif %}
